@@ -11,16 +11,18 @@ type TerminalLine = { type: "input" | "loading"; text?: string }
 interface SimTerminalProps {
   readonly command: string
   readonly sandboxResponseId?: string
+  readonly liveFetcher?: () => Promise<SimulationResponse>
 }
 
 /**
  * Simulation terminal that animates on mount.
  * Use `key={command}` on the parent to trigger re-mount when the command changes.
  */
-export function SimTerminal({ command, sandboxResponseId }: SimTerminalProps) {
+export function SimTerminal({ command, sandboxResponseId, liveFetcher }: SimTerminalProps) {
   const [lines, setLines] = useState<TerminalLine[]>([])
   const [response, setResponse] = useState<SimulationResponse | undefined>()
   const [phase, setPhase] = useState<"typing" | "loading" | "done">("typing")
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = useCallback(() => {
@@ -31,29 +33,50 @@ export function SimTerminal({ command, sandboxResponseId }: SimTerminalProps) {
 
   // Run animation sequence on mount
   useEffect(() => {
+    let cancelled = false
+
     const timer1 = setTimeout(() => {
+      if (cancelled) return
       setLines([{ type: "input", text: command }])
       setPhase("loading")
       scrollToBottom()
     }, 300)
 
+    const loadingText = liveFetcher ? "실시간 데이터 조회 중..." : "처리 중..."
+
     const timer2 = setTimeout(() => {
-      setLines((prev) => [...prev, { type: "loading", text: "처리 중..." }])
+      if (cancelled) return
+      setLines((prev) => [...prev, { type: "loading", text: loadingText }])
       scrollToBottom()
     }, 600)
 
-    const timer3 = setTimeout(() => {
-      const result = sandboxResponseId
-        ? getSimulationResponse(sandboxResponseId)
-        : getSimulationResponse(command)
+    const timer3 = setTimeout(async () => {
+      if (cancelled) return
 
-      setResponse(result)
+      if (liveFetcher) {
+        try {
+          const result = await liveFetcher()
+          if (cancelled) return
+          setResponse(result)
+        } catch (err) {
+          if (cancelled) return
+          const message = err instanceof Error ? err.message : "데이터 조회 실패"
+          setFetchError(message)
+        }
+      } else {
+        const result = sandboxResponseId
+          ? getSimulationResponse(sandboxResponseId)
+          : getSimulationResponse(command)
+        setResponse(result)
+      }
+
       setPhase("done")
       setLines((prev) => prev.filter((l) => l.type !== "loading"))
       scrollToBottom()
-    }, 1500)
+    }, liveFetcher ? 800 : 1500)
 
     return () => {
+      cancelled = true
       clearTimeout(timer1)
       clearTimeout(timer2)
       clearTimeout(timer3)
@@ -72,7 +95,7 @@ export function SimTerminal({ command, sandboxResponseId }: SimTerminalProps) {
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Terminal className="h-3 w-3" />
-          Simulation Terminal
+          {liveFetcher ? "Live Terminal" : "Simulation Terminal"}
         </div>
       </div>
 
@@ -101,9 +124,15 @@ export function SimTerminal({ command, sandboxResponseId }: SimTerminalProps) {
           </div>
         )}
 
-        {phase === "done" && !response && (
+        {phase === "done" && !response && !fetchError && (
           <div className="text-red-400">
             시뮬레이션 데이터를 찾을 수 없습니다. Sandbox 모드에서는 미리 준비된 명령어만 실행할 수 있습니다.
+          </div>
+        )}
+
+        {phase === "done" && fetchError && (
+          <div className="text-red-400">
+            실시간 데이터 조회 실패: {fetchError}
           </div>
         )}
 
