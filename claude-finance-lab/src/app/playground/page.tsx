@@ -1,17 +1,29 @@
 "use client"
 
-import { useState, useCallback } from "react"
-import { Send, Terminal, Trash2, Bot } from "lucide-react"
+import { useState, useCallback, useMemo, useRef } from "react"
+import dynamic from "next/dynamic"
+import { Send, Terminal, Trash2, Bot, FileDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { ClaudeTerminal } from "@/components/terminal/ClaudeTerminal"
+import { DartDataPanel } from "@/components/analysis/DartDataPanel"
+import { ReportDataPanel } from "@/components/report/ReportDataPanel"
+import { detectKoreanCompany } from "@/lib/dartCompanyDetector"
+import { resolveCompany } from "@/lib/reportCompanyResolver"
+
+const ReportPdfView = dynamic(
+  () => import("@/components/report/ReportPdfView").then((m) => m.ReportPdfView),
+  { ssr: false }
+)
 
 const claudeSuggestedCommands = [
+  "/report 삼성전자",
+  "/report AAPL",
+  "/dart:재무제표 SK하이닉스",
+  "/dart:공시 카카오",
+  "삼성전자 최근 실적 분석해줘",
   "AAPL 최근 실적 요약해줘",
   "반도체 업종 전망 분석해줘",
-  "금리 인하가 주식시장에 미치는 영향은?",
-  "고객 미팅 준비 체크리스트 만들어줘",
-  "포트폴리오 리밸런싱 전략 제안해줘",
 ]
 
 export default function PlaygroundPage() {
@@ -19,6 +31,22 @@ export default function PlaygroundPage() {
   const [history, setHistory] = useState<string[]>([])
   const [currentCommand, setCurrentCommand] = useState<string | null>(null)
   const [commandId, setCommandId] = useState(0)
+  const [reportText, setReportText] = useState<string | null>(null)
+  const [isPdfReady, setIsPdfReady] = useState(false)
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+  const pdfViewRef = useRef<HTMLDivElement>(null)
+
+  const reportCompany = useMemo(() => {
+    if (!currentCommand) return null
+    const match = currentCommand.trim().match(/^\/report\s+(.+)$/i)
+    if (!match) return null
+    return resolveCompany(match[1].trim())
+  }, [currentCommand])
+
+  const detectedCompany = useMemo(() => {
+    if (!currentCommand || reportCompany) return null
+    return detectKoreanCompany(currentCommand)
+  }, [currentCommand, reportCompany])
 
   const handleSubmit = useCallback(() => {
     const trimmed = input.trim()
@@ -28,7 +56,35 @@ export default function PlaygroundPage() {
     setInput("")
     setCommandId((prev) => prev + 1)
     setCurrentCommand(trimmed)
+    setReportText(null)
+    setIsPdfReady(false)
   }, [input])
+
+  const handleReportComplete = useCallback(
+    (text: string) => {
+      if (reportCompany) {
+        setReportText(text)
+      }
+    },
+    [reportCompany]
+  )
+
+  const handlePdfDownload = useCallback(async () => {
+    if (!pdfViewRef.current || !reportCompany) return
+
+    setIsGeneratingPdf(true)
+    try {
+      const { generateReportPdf } = await import("@/lib/reportPdfGenerator")
+      const date = new Date().toISOString().slice(0, 10)
+      const name = reportCompany.displayName.replace(/[^a-zA-Z0-9가-힣]/g, "_")
+      await generateReportPdf(pdfViewRef.current, `${name}_리포트_${date}.pdf`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "PDF 생성 실패"
+      alert(message)
+    } finally {
+      setIsGeneratingPdf(false)
+    }
+  }, [reportCompany])
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12">
@@ -73,7 +129,7 @@ export default function PlaygroundPage() {
                     handleSubmit()
                   }
                 }}
-                placeholder="Claude에게 질문하세요... (예: 반도체 업종 전망 분석해줘)"
+                placeholder="Claude에게 질문하세요... (예: /report 삼성전자, /dart:재무제표 SK하이닉스)"
                 className="w-full min-h-[80px] px-4 py-3 rounded-md bg-muted border border-border font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
               />
 
@@ -88,7 +144,52 @@ export default function PlaygroundPage() {
 
           {/* Result */}
           {currentCommand && (
-            <ClaudeTerminal key={`claude-${commandId}`} command={currentCommand} />
+            <>
+              <ClaudeTerminal
+                key={`claude-${commandId}`}
+                command={currentCommand}
+                onComplete={handleReportComplete}
+              />
+
+              {reportText && reportCompany && (
+                <div className="flex justify-end">
+                  <Button
+                    onClick={handlePdfDownload}
+                    disabled={!isPdfReady || isGeneratingPdf}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <FileDown className="h-4 w-4" />
+                    {isGeneratingPdf ? "PDF 생성 중..." : "PDF 다운로드"}
+                  </Button>
+                </div>
+              )}
+
+              {reportCompany ? (
+                <ReportDataPanel
+                  key={`report-${commandId}`}
+                  region={reportCompany.region}
+                  corpCode={reportCompany.corpCode}
+                  corpName={reportCompany.displayName}
+                  ticker={reportCompany.ticker}
+                />
+              ) : detectedCompany ? (
+                <DartDataPanel
+                  key={`dart-${commandId}`}
+                  corpCode={detectedCompany.result.corp_code}
+                  corpName={detectedCompany.result.corp_name}
+                />
+              ) : null}
+            </>
+          )}
+
+          {reportText && reportCompany && (
+            <ReportPdfView
+              ref={pdfViewRef}
+              reportText={reportText}
+              reportCompany={reportCompany}
+              onDataReady={() => setIsPdfReady(true)}
+            />
           )}
         </div>
 
