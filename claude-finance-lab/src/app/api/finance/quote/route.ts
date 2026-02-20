@@ -7,7 +7,6 @@ import type {
 } from "@/types/financialDatasets"
 
 const BASE_URL = "https://api.financialdatasets.ai"
-const ALLOWED_TICKERS = new Set(["AAPL", "GOOGL", "MSFT", "NVDA", "TSLA"])
 
 async function fetchFD<T>(path: string, apiKey: string): Promise<T | null> {
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -21,9 +20,9 @@ async function fetchFD<T>(path: string, apiKey: string): Promise<T | null> {
 export async function GET(request: NextRequest) {
   const ticker = request.nextUrl.searchParams.get("ticker")?.toUpperCase()
 
-  if (!ticker || !ALLOWED_TICKERS.has(ticker)) {
+  if (!ticker || ticker.length > 10) {
     return NextResponse.json(
-      { error: `지원하지 않는 티커입니다. 지원 목록: ${[...ALLOWED_TICKERS].join(", ")}` },
+      { error: "유효한 티커를 입력해주세요." },
       { status: 400 }
     )
   }
@@ -38,16 +37,16 @@ export async function GET(request: NextRequest) {
 
   try {
     const [priceData, companyData, metricsData] = await Promise.all([
-      fetchFD<FDPriceSnapshot>(`/prices/snapshot?ticker=${ticker}`, apiKey),
-      fetchFD<FDCompanyFacts>(`/company/facts?ticker=${ticker}`, apiKey),
-      fetchFD<FDFinancialMetricsSnapshot>(`/financial-metrics/snapshot?ticker=${ticker}`, apiKey),
+      fetchFD<FDPriceSnapshot>(`/prices/snapshot/?ticker=${ticker}`, apiKey),
+      fetchFD<FDCompanyFacts>(`/company/facts/?ticker=${ticker}`, apiKey),
+      fetchFD<FDFinancialMetricsSnapshot>(`/financial-metrics/snapshot/?ticker=${ticker}`, apiKey),
     ])
 
     const response: QuoteApiResponse = {
       ticker,
       price: priceData?.snapshot ?? null,
       company: companyData?.company_facts ?? null,
-      metrics: metricsData?.financial_metrics ?? null,
+      metrics: metricsData?.snapshot ?? null,
     }
 
     return NextResponse.json(response)

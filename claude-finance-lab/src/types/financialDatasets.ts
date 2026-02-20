@@ -1,48 +1,53 @@
 /** Financial Datasets API (financialdatasets.ai) response types */
 
-export interface FDPriceDay {
-  readonly open: number
-  readonly high: number
-  readonly low: number
-  readonly close: number
+export interface FDPriceSnapshotData {
+  readonly ticker: string
+  readonly price: number
+  readonly day_change: number
+  readonly day_change_percent: number
   readonly volume: number
+  readonly time: string
+  readonly time_milliseconds: number
 }
 
 export interface FDPriceSnapshot {
-  readonly snapshot: {
-    readonly ticker: string
-    readonly day: FDPriceDay
-    readonly previous_close: number
-  }
+  readonly snapshot: FDPriceSnapshotData
+}
+
+export interface FDCompanyFactsData {
+  readonly ticker: string
+  readonly name: string
+  readonly cik: string
+  readonly sector: string
+  readonly industry: string
+  readonly category: string
+  readonly exchange: string
+  readonly is_active: boolean
+  readonly listing_date: string
+  readonly location: string
+  readonly market_cap: number
+  readonly number_of_employees: number
+  readonly sic_code: string
+  readonly sic_industry: string
+  readonly sic_sector: string
+  readonly website_url: string
+  readonly weighted_average_shares: number
 }
 
 export interface FDCompanyFacts {
-  readonly company_facts: {
-    readonly ticker: string
-    readonly name: string
-    readonly cik: string
-    readonly market_cap: number
-    readonly number_of_employees: number
-    readonly sic_code: string
-    readonly sic_description: string
-    readonly website_url: string
-    readonly listing_date: string
-    readonly is_active: boolean
-  }
+  readonly company_facts: FDCompanyFactsData
 }
 
 export interface FDFinancialMetric {
   readonly ticker: string
   readonly price_to_earnings_ratio: number | null
-  readonly week_52_high: number | null
-  readonly week_52_low: number | null
-  readonly market_cap: number | null
-  readonly enterprise_value: number | null
   readonly price_to_book_ratio: number | null
   readonly price_to_sales_ratio: number | null
-  readonly dividend_yield: number | null
+  readonly enterprise_value: number | null
+  readonly enterprise_value_to_ebitda_ratio: number | null
   readonly earnings_per_share: number | null
-  readonly revenue_per_share: number | null
+  readonly book_value_per_share: number | null
+  readonly free_cash_flow_per_share: number | null
   readonly debt_to_equity: number | null
   readonly return_on_equity: number | null
   readonly return_on_assets: number | null
@@ -51,10 +56,13 @@ export interface FDFinancialMetric {
   readonly gross_margin: number | null
   readonly operating_margin: number | null
   readonly net_margin: number | null
+  readonly revenue_growth: number | null
+  readonly earnings_growth: number | null
+  readonly payout_ratio: number | null
 }
 
 export interface FDFinancialMetricsSnapshot {
-  readonly financial_metrics: FDFinancialMetric
+  readonly snapshot: FDFinancialMetric
 }
 
 export interface FDNewsArticle {
@@ -64,7 +72,7 @@ export interface FDNewsArticle {
   readonly source: string
   readonly date: string
   readonly url: string
-  readonly content: string
+  readonly sentiment: string
 }
 
 export interface FDNewsResponse {
@@ -74,7 +82,7 @@ export interface FDNewsResponse {
 /** Combined response from our /api/finance/quote proxy */
 export interface QuoteApiResponse {
   readonly ticker: string
-  readonly price: FDPriceSnapshot['snapshot'] | null
-  readonly company: FDCompanyFacts['company_facts'] | null
+  readonly price: FDPriceSnapshotData | null
+  readonly company: FDCompanyFactsData | null
   readonly metrics: FDFinancialMetric | null
 }

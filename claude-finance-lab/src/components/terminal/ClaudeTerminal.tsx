@@ -3,13 +3,16 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import { Bot } from "lucide-react"
 import { fetchClaudeResponse } from "@/lib/fetchClaudeResponse"
+import type { ChatMessage } from "@/types/conversation"
 
 interface ClaudeTerminalProps {
   readonly command: string
+  readonly history?: readonly ChatMessage[]
   readonly onComplete?: (text: string) => void
+  readonly onCompliance?: (triggered: boolean) => void
 }
 
-export function ClaudeTerminal({ command, onComplete }: ClaudeTerminalProps) {
+export function ClaudeTerminal({ command, history, onComplete, onCompliance }: ClaudeTerminalProps) {
   const [phase, setPhase] = useState<"typing" | "streaming" | "done" | "error">("typing")
   const [streamedText, setStreamedText] = useState("")
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -39,9 +42,10 @@ export function ClaudeTerminal({ command, onComplete }: ClaudeTerminalProps) {
       if (cancelled) return
       setPhase("streaming")
 
-      await fetchClaudeResponse(
-        command,
-        {
+      await fetchClaudeResponse({
+        prompt: command,
+        history,
+        callbacks: {
           onText: (text) => {
             if (cancelled) return
             streamedTextRef.current += text
@@ -61,9 +65,13 @@ export function ClaudeTerminal({ command, onComplete }: ClaudeTerminalProps) {
             setPhase("error")
             scrollToBottom()
           },
+          onCompliance: (triggered) => {
+            if (cancelled) return
+            onCompliance?.(triggered)
+          },
         },
-        abortController.signal
-      )
+        signal: abortController.signal,
+      })
     }, 300)
 
     return () => {

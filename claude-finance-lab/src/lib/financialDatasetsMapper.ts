@@ -17,22 +17,25 @@ function formatMarketCap(cap: number | null | undefined): string {
   return String(cap)
 }
 
+function formatPercent(value: number | null | undefined): string {
+  if (value == null) return "-"
+  return `${(value * 100).toFixed(1)}%`
+}
+
 export function mapQuoteToSimulationResponse(
   data: QuoteApiResponse
 ): SimulationResponse {
   const { ticker, price, company, metrics } = data
 
-  const dayClose = price?.day?.close ?? 0
-  const dayOpen = price?.day?.open ?? 0
-  const change = dayClose - dayOpen
-  const changePercent = dayOpen !== 0 ? (change / dayOpen) * 100 : 0
+  const currentPrice = price?.price ?? 0
+  const change = price?.day_change ?? 0
+  const changePercent = price?.day_change_percent ?? 0
 
   const name = company?.name ?? ticker
-  const marketCap = formatMarketCap(company?.market_cap ?? metrics?.market_cap)
-  const volume = formatVolume(price?.day?.volume)
+  const marketCap = formatMarketCap(company?.market_cap)
+  const volume = formatVolume(price?.volume)
   const pe = metrics?.price_to_earnings_ratio ?? undefined
-  const week52High = metrics?.week_52_high ?? undefined
-  const week52Low = metrics?.week_52_low ?? undefined
+  const eps = metrics?.earnings_per_share ?? undefined
 
   return {
     id: `live-${ticker.toLowerCase()}`,
@@ -45,17 +48,21 @@ export function mapQuoteToSimulationResponse(
         data: {
           symbol: ticker,
           name,
-          price: dayClose,
+          price: currentPrice,
           change: Number(change.toFixed(2)),
           changePercent: Number(changePercent.toFixed(2)),
-          open: dayOpen,
-          high: price?.day?.high ?? 0,
-          low: price?.day?.low ?? 0,
           volume,
           marketCap,
           ...(pe != null ? { pe: Number(pe.toFixed(1)) } : {}),
-          ...(week52High != null ? { week52High } : {}),
-          ...(week52Low != null ? { week52Low } : {}),
+          ...(eps != null ? { eps: Number(eps.toFixed(2)) } : {}),
+          ...(metrics?.return_on_equity != null
+            ? { roe: formatPercent(metrics.return_on_equity) }
+            : {}),
+          ...(metrics?.gross_margin != null
+            ? { grossMargin: formatPercent(metrics.gross_margin) }
+            : {}),
+          ...(company?.sector ? { sector: company.sector } : {}),
+          ...(company?.exchange ? { exchange: company.exchange } : {}),
         },
       },
     ],

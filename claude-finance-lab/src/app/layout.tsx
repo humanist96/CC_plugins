@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
+import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider"
 import "./globals.css"
 
 const inter = Inter({
@@ -31,6 +32,7 @@ export default function RootLayout({
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased min-h-screen flex flex-col`}
       >
         <TooltipProvider>
+          <OnboardingProvider />
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />

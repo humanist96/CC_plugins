@@ -2,18 +2,20 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Terminal, BookOpen, Layout, Gamepad2, BookMarked, GraduationCap, Menu } from "lucide-react"
+import { Terminal, BookOpen, MessageSquare, BookMarked, BarChart3, Menu, Briefcase, Newspaper, LayoutDashboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
 
 const navItems = [
+  { href: "/chat", label: "Chat", icon: MessageSquare },
+  { href: "/analysis", label: "기업분석", icon: BarChart3 },
+  { href: "/portfolio", label: "Portfolio", icon: Briefcase },
+  { href: "/feed", label: "Feed", icon: Newspaper },
+  { href: "/vrm", label: "VRM", icon: LayoutDashboard },
   { href: "/tutorials", label: "Tutorials", icon: BookOpen },
-  { href: "/dashboard", label: "Dashboard", icon: Layout },
-  { href: "/playground", label: "Playground", icon: Gamepad2 },
   { href: "/reference", label: "Reference", icon: BookMarked },
-  { href: "/quiz", label: "Quiz", icon: GraduationCap },
 ] as const
 
 export function Header() {

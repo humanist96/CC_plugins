@@ -1,0 +1,58 @@
+import type { Holding } from "@/types/portfolio"
+
+export const DEMO_HOLDINGS: readonly Holding[] = [
+  {
+    id: "demo-1",
+    ticker: "005930",
+    name: "삼성전자",
+    region: "KR",
+    quantity: 100,
+    avgPrice: 72000,
+    addedAt: Date.now() - 30 * 86_400_000,
+  },
+  {
+    id: "demo-2",
+    ticker: "000660",
+    name: "SK하이닉스",
+    region: "KR",
+    quantity: 20,
+    avgPrice: 180000,
+    addedAt: Date.now() - 25 * 86_400_000,
+  },
+  {
+    id: "demo-3",
+    ticker: "AAPL",
+    name: "Apple Inc.",
+    region: "US",
+    quantity: 10,
+    avgPrice: 185.50,
+    addedAt: Date.now() - 60 * 86_400_000,
+  },
+  {
+    id: "demo-4",
+    ticker: "NVDA",
+    name: "NVIDIA Corp.",
+    region: "US",
+    quantity: 5,
+    avgPrice: 720.00,
+    addedAt: Date.now() - 45 * 86_400_000,
+  },
+  {
+    id: "demo-5",
+    ticker: "035420",
+    name: "NAVER",
+    region: "KR",
+    quantity: 30,
+    avgPrice: 215000,
+    addedAt: Date.now() - 20 * 86_400_000,
+  },
+  {
+    id: "demo-6",
+    ticker: "MSFT",
+    name: "Microsoft Corp.",
+    region: "US",
+    quantity: 8,
+    avgPrice: 410.00,
+    addedAt: Date.now() - 15 * 86_400_000,
+  },
+]
