@@ -1,11 +1,12 @@
 "use client"
 
-import { Flame, Sun, Snowflake } from "lucide-react"
+import { Flame, Sun, Snowflake, Info } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import type { LeadScore } from "@/data/demoAnalytics"
 
 interface LeadScoreCardProps {
   readonly leads: readonly LeadScore[]
+  readonly isDemo?: boolean
 }
 
 const scoreConfig = {
@@ -14,7 +15,7 @@ const scoreConfig = {
   cold: { icon: Snowflake, color: "text-blue-400", bg: "bg-blue-500/10", label: "Cold" },
 } as const
 
-export function LeadScoreCard({ leads }: LeadScoreCardProps) {
+export function LeadScoreCard({ leads, isDemo = false }: LeadScoreCardProps) {
   const grouped = {
     hot: leads.filter((l) => l.score === "hot"),
     warm: leads.filter((l) => l.score === "warm"),
@@ -24,9 +25,22 @@ export function LeadScoreCard({ leads }: LeadScoreCardProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">리드 스코어링</CardTitle>
+        <CardTitle className="text-base flex items-center gap-2">
+          리드 스코어링
+          {isDemo && (
+            <span className="text-[10px] font-medium bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">
+              DEMO
+            </span>
+          )}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {isDemo && (
+          <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg p-2.5">
+            <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+            <span>실제 사용자 활동이 쌓이면 자동으로 라이브 데이터로 전환됩니다.</span>
+          </div>
+        )}
         {(["hot", "warm", "cold"] as const).map((score) => {
           const config = scoreConfig[score]
           const Icon = config.icon

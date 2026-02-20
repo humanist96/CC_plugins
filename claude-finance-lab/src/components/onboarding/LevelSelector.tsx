@@ -30,8 +30,21 @@ export function LevelSelector() {
 
   if (onboardingComplete) return null
 
-  const handleComplete = () => {
-    setProfile({ name: name.trim() || "사용자", role, investmentLevel: level })
+  const handleComplete = async () => {
+    const userName = name.trim() || "사용자"
+    setProfile({ name: userName, role, investmentLevel: level })
+
+    // Create auth session
+    try {
+      await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: userName, role }),
+      })
+    } catch {
+      // Non-blocking — session creation failure shouldn't block onboarding
+    }
+
     completeOnboarding()
   }
 

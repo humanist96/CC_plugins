@@ -2,15 +2,14 @@ import { NextRequest, NextResponse } from "next/server"
 import type { FDNewsResponse } from "@/types/financialDatasets"
 
 const BASE_URL = "https://api.financialdatasets.ai"
-const ALLOWED_TICKERS = new Set(["AAPL", "GOOGL", "MSFT", "NVDA", "TSLA"])
 
 export async function GET(request: NextRequest) {
   const ticker = request.nextUrl.searchParams.get("ticker")?.toUpperCase()
   const limit = request.nextUrl.searchParams.get("limit") ?? "5"
 
-  if (!ticker || !ALLOWED_TICKERS.has(ticker)) {
+  if (!ticker || !/^[A-Z]{1,5}$/.test(ticker)) {
     return NextResponse.json(
-      { error: `지원하지 않는 티커입니다. 지원 목록: ${[...ALLOWED_TICKERS].join(", ")}` },
+      { error: "유효한 US 티커를 입력해주세요 (1~5자 영문)" },
       { status: 400 }
     )
   }

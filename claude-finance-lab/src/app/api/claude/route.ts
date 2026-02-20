@@ -8,15 +8,30 @@ import { buildConversationSystemPrompt } from "@/lib/conversationManager"
 import { detectAdvisoryIntent } from "@/lib/complianceFilter"
 import { buildComplianceInstruction } from "@/lib/compliancePromptBuilder"
 import { logAnalyticsEvent } from "@/lib/db/repositories/analytics"
+import { getLevelInstruction } from "@/lib/levelInstruction"
 
 // Allow long-running responses (up to 5 minutes)
 export const maxDuration = 300
 
 const RATE_LIMIT = 10
 const WINDOW_MS = 60_000
+const MAX_MAP_SIZE = 10_000
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 
+// Periodic cleanup to prevent memory leak
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, entry] of rateLimitMap) {
+    if (now > entry.resetAt) rateLimitMap.delete(key)
+  }
+}, WINDOW_MS)
+
 function isRateLimited(ip: string): boolean {
+  // Hard cap to prevent memory exhaustion from spoofed IPs
+  if (rateLimitMap.size > MAX_MAP_SIZE) {
+    rateLimitMap.clear()
+  }
+
   const now = Date.now()
   const entry = rateLimitMap.get(ip)
   if (!entry || now > entry.resetAt) {
@@ -104,6 +119,11 @@ async function resolvePrompts(
 }
 
 export async function POST(request: NextRequest) {
+  // Auth check — protect Claude CLI from unauthorized usage
+  const { requireAuth } = await import("@/lib/auth")
+  const authError = await requireAuth(request)
+  if (authError) return authError
+
   const clientIp = request.headers.get("x-forwarded-for") ?? "unknown"
   if (isRateLimited(clientIp)) {
     return Response.json(
@@ -148,11 +168,12 @@ export async function POST(request: NextRequest) {
   // Build system prompt with optional history, compliance, and user level
   let systemPrompt = resolved.systemPrompt
 
-  // Add level-based instruction
-  if (investmentLevel === "beginner") {
-    systemPrompt += "\n\nThe user is a beginner investor. Use simple language. Define financial terms when first used. Provide analogies and examples."
-  } else if (investmentLevel === "advanced") {
-    systemPrompt += "\n\nThe user is an advanced investor. Use technical analysis terminology, detailed financial metrics, and industry-specific jargon freely."
+  // Add level-based instruction (beginner/intermediate/advanced)
+  if (investmentLevel) {
+    const instruction = getLevelInstruction(investmentLevel)
+    if (instruction) {
+      systemPrompt += `\n\n${instruction}`
+    }
   }
 
   if (complianceInstruction) {

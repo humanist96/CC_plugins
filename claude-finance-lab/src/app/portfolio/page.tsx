@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Plus, Download, RefreshCw, Briefcase } from "lucide-react"
+import { Plus, Download, RefreshCw, Briefcase, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { usePortfolioStore } from "@/stores/usePortfolioStore"
@@ -99,8 +99,16 @@ export default function PortfolioPage() {
         </div>
       </div>
 
+      {/* Loading State */}
+      {isLoading && holdings.length > 0 && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          시세를 불러오는 중...
+        </div>
+      )}
+
       {/* Summary Cards */}
-      {summary && <PortfolioSummary summary={summary} />}
+      {summary && <PortfolioSummary summary={summary} holdings={enrichedHoldings} />}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         {/* Holdings Table */}

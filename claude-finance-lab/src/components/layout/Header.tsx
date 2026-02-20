@@ -9,13 +9,13 @@ import { cn } from "@/lib/utils"
 import { useState } from "react"
 
 const navItems = [
-  { href: "/chat", label: "Chat", icon: MessageSquare },
+  { href: "/chat", label: "채팅", icon: MessageSquare },
   { href: "/analysis", label: "기업분석", icon: BarChart3 },
-  { href: "/portfolio", label: "Portfolio", icon: Briefcase },
-  { href: "/feed", label: "Feed", icon: Newspaper },
+  { href: "/portfolio", label: "포트폴리오", icon: Briefcase },
+  { href: "/feed", label: "뉴스피드", icon: Newspaper },
   { href: "/vrm", label: "VRM", icon: LayoutDashboard },
-  { href: "/tutorials", label: "Tutorials", icon: BookOpen },
-  { href: "/reference", label: "Reference", icon: BookMarked },
+  { href: "/tutorials", label: "튜토리얼", icon: BookOpen },
+  { href: "/reference", label: "레퍼런스", icon: BookMarked },
 ] as const
 
 export function Header() {

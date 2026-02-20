@@ -3,6 +3,7 @@
 import { useMemo } from "react"
 import { Plus, Trash2, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ConfirmDialog, useConfirmDialog } from "@/components/ui/confirm-dialog"
 import { useConversationStore } from "@/stores/useConversationStore"
 import { cn } from "@/lib/utils"
 
@@ -37,6 +38,7 @@ function groupByDate(conversations: readonly ConvItem[]) {
 }
 
 export function ConversationSidebar() {
+  const dialog = useConfirmDialog()
   const conversations = useConversationStore((s) => s.conversations)
   const activeId = useConversationStore((s) => s.activeConversationId)
   const createConversation = useConversationStore((s) => s.createConversation)
@@ -87,8 +89,9 @@ export function ConversationSidebar() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    deleteConversation(conv.id)
+                    dialog.confirm(() => deleteConversation(conv.id))
                   }}
+                  aria-label={`${conv.title} 삭제`}
                   className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/20 transition-opacity"
                 >
                   <Trash2 className="h-3 w-3 text-muted-foreground" />
@@ -98,6 +101,14 @@ export function ConversationSidebar() {
           </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        title="대화 삭제"
+        description="이 대화를 삭제하시겠습니까? 삭제된 대화는 복구할 수 없습니다."
+        isOpen={dialog.isOpen}
+        onConfirm={dialog.onConfirm}
+        onCancel={dialog.onCancel}
+      />
     </div>
   )
 }

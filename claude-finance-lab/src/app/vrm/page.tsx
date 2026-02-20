@@ -148,7 +148,7 @@ export default function VrmPage() {
 
       {/* Bottom Row */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <LeadScoreCard leads={DEMO_LEADS} />
+        <LeadScoreCard leads={DEMO_LEADS} isDemo={!isLive} />
 
         {/* Compliance Detail */}
         <Card>

@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useCallback } from "react"
-import { Zap, Bot } from "lucide-react"
+import { useState, useCallback, useRef, useEffect } from "react"
+import { Zap, Bot, Square } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { fetchClaudeResponse } from "@/lib/fetchClaudeResponse"
@@ -17,13 +17,31 @@ export function MarketExplainer() {
   const [response, setResponse] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort()
+    }
+  }, [])
+
+  const handleStop = useCallback(() => {
+    abortRef.current?.abort()
+    abortRef.current = null
+    setIsLoading(false)
+  }, [])
 
   const handleQuestion = useCallback(async (question: string) => {
+    // Abort previous request if still running
+    abortRef.current?.abort()
+
+    const abortController = new AbortController()
+    abortRef.current = abortController
+
     setIsLoading(true)
     setActiveQuestion(question)
     setResponse("")
-
-    const abortController = new AbortController()
 
     await fetchClaudeResponse({
       prompt: question,
@@ -33,10 +51,12 @@ export function MarketExplainer() {
         },
         onDone: () => {
           setIsLoading(false)
+          abortRef.current = null
         },
         onError: (error) => {
           setResponse(`오류: ${error}`)
           setIsLoading(false)
+          abortRef.current = null
         },
       },
       signal: abortController.signal,
@@ -59,7 +79,6 @@ export function MarketExplainer() {
               variant="outline"
               size="sm"
               className="justify-start text-xs h-auto py-2 px-3"
-              disabled={isLoading}
               onClick={() => handleQuestion(q)}
             >
               {q}
@@ -71,8 +90,13 @@ export function MarketExplainer() {
           <div className="mt-4 rounded-lg bg-slate-950 border border-border p-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
               <Bot className="h-3.5 w-3.5 text-purple-400" />
-              <span>{activeQuestion}</span>
-              {isLoading && <span className="animate-pulse text-amber-400 ml-auto">응답 중...</span>}
+              <span className="flex-1">{activeQuestion}</span>
+              {isLoading && (
+                <button onClick={handleStop} className="flex items-center gap-1 text-red-400 hover:text-red-300 transition-colors">
+                  <Square className="h-3 w-3" />
+                  <span>중지</span>
+                </button>
+              )}
             </div>
             <div className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">
               {response || "..."}

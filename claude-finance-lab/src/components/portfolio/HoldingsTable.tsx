@@ -2,8 +2,9 @@
 
 import { Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ConfirmDialog, useConfirmDialog } from "@/components/ui/confirm-dialog"
 import type { HoldingWithQuote } from "@/types/portfolio"
-import { formatPercent } from "@/lib/portfolioCalculator"
+import { formatPercent, formatCurrency } from "@/lib/portfolioCalculator"
 
 interface HoldingsTableProps {
   readonly holdings: readonly HoldingWithQuote[]
@@ -11,6 +12,8 @@ interface HoldingsTableProps {
 }
 
 export function HoldingsTable({ holdings, onRemove }: HoldingsTableProps) {
+  const dialog = useConfirmDialog()
+
   if (holdings.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground text-sm">
@@ -38,8 +41,6 @@ export function HoldingsTable({ holdings, onRemove }: HoldingsTableProps) {
           {holdings.map((h) => {
             const gainColor = (h.totalGain ?? 0) >= 0 ? "text-green-400" : "text-red-400"
             const dayColor = (h.dayChange ?? 0) >= 0 ? "text-green-400" : "text-red-400"
-            const priceFormat = h.region === "KR" ? "ko-KR" : "en-US"
-            const priceFractionDigits = h.region === "KR" ? 0 : 2
 
             return (
               <tr key={h.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
@@ -49,11 +50,11 @@ export function HoldingsTable({ holdings, onRemove }: HoldingsTableProps) {
                 </td>
                 <td className="text-right py-3 px-2">{h.quantity.toLocaleString()}</td>
                 <td className="text-right py-3 px-2">
-                  {h.avgPrice.toLocaleString(priceFormat, { minimumFractionDigits: priceFractionDigits })}
+                  {formatCurrency(h.avgPrice, h.region)}
                 </td>
                 <td className="text-right py-3 px-2">
                   {h.currentPrice !== null
-                    ? h.currentPrice.toLocaleString(priceFormat, { minimumFractionDigits: priceFractionDigits })
+                    ? formatCurrency(h.currentPrice, h.region)
                     : "—"}
                 </td>
                 <td className={`text-right py-3 px-2 ${dayColor}`}>
@@ -63,13 +64,13 @@ export function HoldingsTable({ holdings, onRemove }: HoldingsTableProps) {
                 </td>
                 <td className="text-right py-3 px-2 font-medium">
                   {h.totalValue !== null
-                    ? `$${h.totalValue.toLocaleString("en-US", { minimumFractionDigits: 2 })}`
+                    ? formatCurrency(h.totalValue, h.region)
                     : "—"}
                 </td>
                 <td className={`text-right py-3 px-2 ${gainColor}`}>
                   {h.totalGain !== null ? (
                     <div>
-                      <div>${Math.abs(h.totalGain).toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
+                      <div>{formatCurrency(Math.abs(h.totalGain), h.region)}</div>
                       <div className="text-xs">{formatPercent(h.totalGainPercent ?? 0)}</div>
                     </div>
                   ) : "—"}
@@ -79,7 +80,8 @@ export function HoldingsTable({ holdings, onRemove }: HoldingsTableProps) {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                    onClick={() => onRemove(h.id)}
+                    onClick={() => dialog.confirm(() => onRemove(h.id))}
+                    aria-label={`${h.name} 삭제`}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -89,6 +91,14 @@ export function HoldingsTable({ holdings, onRemove }: HoldingsTableProps) {
           })}
         </tbody>
       </table>
+
+      <ConfirmDialog
+        title="종목 삭제"
+        description="이 종목을 포트폴리오에서 삭제하시겠습니까?"
+        isOpen={dialog.isOpen}
+        onConfirm={dialog.onConfirm}
+        onCancel={dialog.onCancel}
+      />
     </div>
   )
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
+import { useSearchParams } from "next/navigation"
 import { Bot, Sparkles } from "lucide-react"
 import { useConversationStore } from "@/stores/useConversationStore"
 import { fetchClaudeResponse } from "@/lib/fetchClaudeResponse"
@@ -23,10 +24,12 @@ const SUGGESTED_PROMPTS = [
 ]
 
 export function ChatInterface() {
+  const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const initialQueryHandled = useRef(false)
 
   const investmentLevel = useUserProfileStore((s) => s.investmentLevel)
   const activeConversation = useConversationStore((s) => s.getActiveConversation())
@@ -143,6 +146,17 @@ export function ChatInterface() {
     },
     [handleSend]
   )
+
+  // Handle ?q= query parameter from Feed page "Ask Claude" links
+  useEffect(() => {
+    if (initialQueryHandled.current) return
+    const q = searchParams.get("q")
+    if (q && !isLoading) {
+      initialQueryHandled.current = true
+      handleSend(q)
+      window.history.replaceState({}, "", "/chat")
+    }
+  }, [searchParams, isLoading, handleSend])
 
   // Empty state
   if (messages.length === 0 && !isLoading) {

@@ -4,6 +4,14 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import type { DemoUsage } from "@/data/demoAnalytics"
 
+const tooltipStyle = {
+  backgroundColor: "var(--color-card)",
+  border: "1px solid var(--color-border)",
+  borderRadius: "8px",
+  fontSize: "12px",
+  color: "var(--color-card-foreground)",
+}
+
 interface EngagementChartProps {
   readonly data: readonly DemoUsage[]
 }
@@ -23,21 +31,15 @@ export function EngagementChart({ data }: EngagementChartProps) {
         <div className="h-[220px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 10, fill: "#94a3b8" }}
+                tick={{ fontSize: 10 }}
+                className="fill-muted-foreground"
                 interval="preserveStartEnd"
               />
-              <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} width={30} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#1e293b",
-                  border: "1px solid #334155",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                }}
-              />
+              <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" width={30} />
+              <Tooltip contentStyle={tooltipStyle} />
               <Bar dataKey="count" fill="#8b5cf6" radius={[2, 2, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

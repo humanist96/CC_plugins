@@ -3,27 +3,57 @@
 import { TrendingUp, TrendingDown, DollarSign, BarChart3 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import type { PortfolioSummary as PortfolioSummaryType } from "@/types/portfolio"
+import type { HoldingWithQuote } from "@/types/portfolio"
 import { formatPercent } from "@/lib/portfolioCalculator"
 
 interface PortfolioSummaryProps {
   readonly summary: PortfolioSummaryType
+  readonly holdings?: readonly HoldingWithQuote[]
 }
 
-export function PortfolioSummary({ summary }: PortfolioSummaryProps) {
+function detectPrimaryCurrency(holdings?: readonly HoldingWithQuote[]): "KR" | "US" {
+  if (!holdings || holdings.length === 0) return "US"
+  const krValue = holdings
+    .filter((h) => h.region === "KR" && h.totalValue !== null)
+    .reduce((acc, h) => acc + (h.totalValue ?? 0), 0)
+  const usValue = holdings
+    .filter((h) => h.region === "US" && h.totalValue !== null)
+    .reduce((acc, h) => acc + (h.totalValue ?? 0), 0)
+  return krValue > usValue ? "KR" : "US"
+}
+
+function formatSummaryValue(value: number, region: "KR" | "US"): string {
+  if (region === "KR") {
+    return new Intl.NumberFormat("ko-KR", {
+      style: "currency",
+      currency: "KRW",
+      maximumFractionDigits: 0,
+    }).format(value)
+  }
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value)
+}
+
+export function PortfolioSummary({ summary, holdings }: PortfolioSummaryProps) {
+  const primaryRegion = detectPrimaryCurrency(holdings)
   const isGainPositive = summary.totalGain >= 0
   const isDayPositive = summary.dayChange >= 0
 
   const cards = [
     {
       label: "총 평가액",
-      value: `$${summary.totalValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      value: formatSummaryValue(summary.totalValue, primaryRegion),
       icon: DollarSign,
       color: "text-blue-400",
       bgColor: "bg-blue-500/10",
     },
     {
       label: "총 손익",
-      value: `$${Math.abs(summary.totalGain).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      value: formatSummaryValue(Math.abs(summary.totalGain), primaryRegion),
       sub: formatPercent(summary.totalGainPercent),
       icon: isGainPositive ? TrendingUp : TrendingDown,
       color: isGainPositive ? "text-green-400" : "text-red-400",
@@ -31,7 +61,7 @@ export function PortfolioSummary({ summary }: PortfolioSummaryProps) {
     },
     {
       label: "일일 변동",
-      value: `$${Math.abs(summary.dayChange).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      value: formatSummaryValue(Math.abs(summary.dayChange), primaryRegion),
       sub: formatPercent(summary.dayChangePercent),
       icon: isDayPositive ? TrendingUp : TrendingDown,
       color: isDayPositive ? "text-green-400" : "text-red-400",
