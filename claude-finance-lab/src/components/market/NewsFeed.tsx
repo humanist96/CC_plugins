@@ -19,16 +19,18 @@ function timeAgo(dateStr: string): string {
 
 interface NewsFeedProps {
   readonly tickers?: readonly string[]
-  readonly onAskClaude?: (question: string) => void
+  readonly startDate?: string
+  readonly endDate?: string
+  readonly onAskClaude?: (question: string, article: FDNewsArticle) => void
 }
 
-export function NewsFeed({ tickers = DEFAULT_TICKERS, onAskClaude }: NewsFeedProps) {
+export function NewsFeed({ tickers = DEFAULT_TICKERS, startDate, endDate, onAskClaude }: NewsFeedProps) {
   const [articles, setArticles] = useState<FDNewsArticle[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    let cancelled = false
+    const controller = new AbortController()
 
     async function fetchNews() {
       setIsLoading(true)
@@ -37,14 +39,19 @@ export function NewsFeed({ tickers = DEFAULT_TICKERS, onAskClaude }: NewsFeedPro
       try {
         const results = await Promise.allSettled(
           tickers.map(async (ticker) => {
-            const res = await fetch(`/api/finance/news?ticker=${ticker}&limit=2`)
+            const params = new URLSearchParams({ ticker, limit: "2" })
+            if (startDate) params.set("start_date", startDate)
+            if (endDate) params.set("end_date", endDate)
+            const res = await fetch(`/api/finance/news?${params.toString()}`, {
+              signal: controller.signal,
+            })
             if (!res.ok) return []
             const data = await res.json()
             return (data.news ?? []) as FDNewsArticle[]
           })
         )
 
-        if (cancelled) return
+        if (controller.signal.aborted) return
 
         const allArticles = results
           .filter((r): r is PromiseFulfilledResult<FDNewsArticle[]> => r.status === "fulfilled")
@@ -60,16 +67,17 @@ export function NewsFeed({ tickers = DEFAULT_TICKERS, onAskClaude }: NewsFeedPro
         })
 
         setArticles(deduped.slice(0, 10))
-      } catch {
-        if (!cancelled) setError("뉴스를 불러올 수 없습니다.")
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return
+        if (!controller.signal.aborted) setError("뉴스를 불러올 수 없습니다.")
       } finally {
-        if (!cancelled) setIsLoading(false)
+        if (!controller.signal.aborted) setIsLoading(false)
       }
     }
 
     fetchNews()
-    return () => { cancelled = true }
-  }, [tickers])
+    return () => { controller.abort() }
+  }, [tickers, startDate, endDate])
 
   if (isLoading) {
     return (
@@ -144,7 +152,7 @@ export function NewsFeed({ tickers = DEFAULT_TICKERS, onAskClaude }: NewsFeedPro
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-purple-400"
-                    onClick={() => onAskClaude(`"${news.title}" 이 뉴스에 대해 분석해줘`)}
+                    onClick={() => onAskClaude(`"${news.title}" 이 뉴스에 대해 분석해줘`, news)}
                     aria-label="Claude에게 분석 요청"
                   >
                     <MessageSquare className="h-3.5 w-3.5" />
